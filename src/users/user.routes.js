@@ -14,6 +14,7 @@ router.get("/emails-and-names",
 );
 
 router.get("/", getUsers);
+router.get("/managers", getManagers);
 router.get("/:userId", getUserById);
 router.put(
     "/:id",
