@@ -11,6 +11,13 @@ const HotelSchema = new Schema({
     ref: "User",
     autopopulate: true,
   },
+  admins: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      autopopulate: true,
+    },
+  ],
   direction: {
     type: String,
     required: true,

@@ -459,7 +459,17 @@ export const busyAndAvailableRooms = async (req, res) => {
 export const getHotelByManager = async (req,res) => {
   try {
     const userId = req.user._id;
-    const hotel = await Hotel.findOne({ admin: userId, state: true });
+    const hotel = await Hotel.findOne({
+      $or: [
+        { admin: userId },
+        { admins: userId }
+      ],
+      state: true
+    })
+      .populate("admin")
+      .populate("admins")
+      .populate("rooms")
+      .populate("services");
 
     if (!hotel) {
       return res.status(404).json({

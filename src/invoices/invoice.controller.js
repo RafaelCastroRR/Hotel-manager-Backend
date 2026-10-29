@@ -6,8 +6,7 @@ export const saveInvoice = async (req, res) => {
   try {
     const { reservationId } = req.body;
 
-    
-    const reservation = await Reservation.findById(reservationId);
+    const reservation = await Reservation.findById(reservationId).populate("services.service");
 
     if (!reservation) {
       return res.status(404).json({
@@ -15,36 +14,32 @@ export const saveInvoice = async (req, res) => {
       });
     }
 
-    
     const checkIn = new Date(reservation.checkInDate);
     const checkOut = new Date(reservation.checkOutDate);
-    const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24)); 
+    const nights = Math.max(1, Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24))); 
 
-    
     const room = await Room.findById(reservation.room);
     if (!room) {
       return res.status(404).json({
         msg: "Room not found",
       });
     }
-    const roomPricePerNight = parseFloat(room.price_per_night);
+    const roomPricePerNight = parseFloat(room.price_per_night || 0);
     const roomTotal = nights * roomPricePerNight;
 
-    
-    const services = reservation.services.map((s) => {
-      const total = parseFloat(s.service.price);
+    const services = (reservation.services || []).map((s) => {
+      const sObj = s?.service || {};
+      const price = parseFloat(sObj.price || 0);
       return {
-        name: s.service.name,
-        price: s.service.price,
-        total,
+        name: sObj.name || "Servicio adicional",
+        price,
+        total: price,
       };
     });
 
-    
-    const servicesTotal = services.reduce((acc, s) => acc + parseFloat(s.total), 0);
+    const servicesTotal = services.reduce((acc, s) => acc + parseFloat(s.total || 0), 0);
     const total_pagar = roomTotal + servicesTotal;
 
-    
     const invoice = new Invoice({
       reservation: reservation._id,
       nights,
@@ -61,6 +56,7 @@ export const saveInvoice = async (req, res) => {
       invoice,
     });
   } catch (e) {
+    console.error("Error creating invoice:", e);
     res.status(500).json({
       msg: "Error creating invoice",
       error: e.message,
@@ -69,117 +65,113 @@ export const saveInvoice = async (req, res) => {
 };
 
 export const getInvoices = async (req, res) => {
-    try {
-      const { userId, hotelId, statusInvoice, startDate, endDate } = req.query;
-  
-      const query = { status: true };
-  
-      if (statusInvoice) query.statusInvoice = statusInvoice;
-  
-      if (startDate || endDate) {
-        query.Date = {};
-        if (startDate) query.Date.$gte = new Date(startDate);
-        if (endDate) query.Date.$lte = new Date(endDate);
-      }
-  
-      if (userId) query["reservation.user"] = userId;
-      
-      let invoices;
-      if (hotelId) {
-        // Primero encontramos las reservas del hotel
-        const reservations = await Reservation.find({ hotel: hotelId });
-        const reservationIds = reservations.map(res => res._id);
-        // Luego buscamos las facturas que corresponden a esas reservas
-        query.reservation = { $in: reservationIds };
-      }
-  
-      invoices = await Invoice.find(query).populate({
-        path: 'reservation',
-        populate: {
-          path: 'hotel',
-          select: 'name'
-        }
-      });
-  
-      res.status(200).json({
-        msg: "Invoices retrieved successfully",
-        invoices,
-      });
-    } catch (e) {
-      res.status(500).json({ msg: "Error retrieving invoices", error: e.message });
-    }
-  };
+  try {
+    const { userId, hotelId, statusInvoice, startDate, endDate } = req.query;
 
-  
-  export const updateInvoice = async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { statusInvoice, status } = req.body;
-  
-      const invoice = await Invoice.findByIdAndUpdate(
-        id,
-        {
-          ...(statusInvoice && { statusInvoice }),
-          ...(typeof status === "boolean" && { status }),
-        },
-        { new: true }
-      );
-  
-      if (!invoice) {
-        return res.status(404).json({ msg: "Invoice not found" });
-      }
-  
-      res.status(200).json({
-        msg: "Invoice updated successfully",
-        invoice,
-      });
-    } catch (e) {
-      res.status(500).json({ msg: "Error updating invoice", error: e.message });
-    }
-  };
+    const query = { status: true };
 
-  export const getInvoicesForUser = async (req, res) => {
-    try {
-      const { userId } = req.user;
-  
-      const invoices = await Invoice.find({ "reservation.user": userId });
-  
-      if (!invoices || invoices.length === 0) {
-        return res.status(404).json({ msg: "No invoices found for this user" });
-      }
-  
-      res.status(200).json({
-        msg: "Invoices retrieved successfully",
-        invoices,
-      });
-    } catch (e) {
-      res.status(500).json({
-        msg: "Error retrieving invoices",
-        error: e.message,
-      });
-    }
-  };
+    if (statusInvoice) query.statusInvoice = statusInvoice;
 
-  export const deleteInvoice = async (req, res) => {
-    try {
-      const { id } = req.params;
-  
-      const invoice = await Invoice.findByIdAndUpdate(
-        id,
-        { status: false },
-        { new: true }
-      );
-  
-      if (!invoice) {
-        return res.status(404).json({ msg: "Invoice not found" });
-      }
-  
-      res.status(200).json({
-        msg: "Invoice deleted successfully",
-        invoice,
-      });
-    } catch (e) {
-      res.status(500).json({ msg: "Error deleting invoice", error: e.message });
+    if (startDate || endDate) {
+      query.Date = {};
+      if (startDate) query.Date.$gte = new Date(startDate);
+      if (endDate) query.Date.$lte = new Date(endDate);
     }
-  };
-  
+
+    if (userId) query["reservation.user"] = userId;
+    
+    let invoices;
+    if (hotelId) {
+      const reservations = await Reservation.find({ hotel: hotelId });
+      const reservationIds = reservations.map(res => res._id);
+      query.reservation = { $in: reservationIds };
+    }
+
+    invoices = await Invoice.find(query).populate({
+      path: 'reservation',
+      populate: {
+        path: 'hotel',
+        select: 'name'
+      }
+    });
+
+    res.status(200).json({
+      msg: "Invoices retrieved successfully",
+      invoices,
+    });
+  } catch (e) {
+    res.status(500).json({ msg: "Error retrieving invoices", error: e.message });
+  }
+};
+
+export const updateInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { statusInvoice, status } = req.body;
+
+    const invoice = await Invoice.findByIdAndUpdate(
+      id,
+      {
+        ...(statusInvoice && { statusInvoice }),
+        ...(typeof status === "boolean" && { status }),
+      },
+      { new: true }
+    );
+
+    if (!invoice) {
+      return res.status(404).json({ msg: "Invoice not found" });
+    }
+
+    res.status(200).json({
+      msg: "Invoice updated successfully",
+      invoice,
+    });
+  } catch (e) {
+    res.status(500).json({ msg: "Error updating invoice", error: e.message });
+  }
+};
+
+export const getInvoicesForUser = async (req, res) => {
+  try {
+    const { userId } = req.user;
+
+    const invoices = await Invoice.find({ "reservation.user": userId });
+
+    if (!invoices || invoices.length === 0) {
+      return res.status(404).json({ msg: "No invoices found for this user" });
+    }
+
+    res.status(200).json({
+      msg: "Invoices retrieved successfully",
+      invoices,
+    });
+  } catch (e) {
+    res.status(500).json({
+      msg: "Error retrieving invoices",
+      error: e.message,
+    });
+  }
+};
+
+export const deleteInvoice = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const invoice = await Invoice.findByIdAndUpdate(
+      id,
+      { status: false },
+      { new: true }
+    );
+
+    if (!invoice) {
+      return res.status(404).json({ msg: "Invoice not found" });
+    }
+
+    res.status(200).json({
+      msg: "Invoice deleted successfully",
+      invoice,
+    });
+  } catch (e) {
+    res.status(500).json({ msg: "Error deleting invoice", error: e.message });
+  }
+};

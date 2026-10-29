@@ -2,10 +2,17 @@ import express from "express";
 import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
-import { hash, verify } from "argon2";
+import { hash } from "argon2";
 import { dbConection } from "./mongo.js";
 
+// Registro explícito y garantizado de todos los modelos Mongoose al iniciar
 import User from "../src/users/user.model.js";
+import "../src/hotels/hotel.schema.js";
+import "../src/rooms/room.model.js";
+import "../src/services/service.model.js";
+import "../src/reservations/reservation.model.js";
+import "../src/event/event.model.js";
+import "../src/invoices/invoice.model.js";
 
 import authRoutes from "../src/auth/auth.routes.js";
 import userRoutes from "../src/users/user.routes.js";
@@ -83,4 +90,3 @@ export const crearAdmin = async () => {
     console.log(`Error al crear admin: ${error}`);
   }
 };
-
