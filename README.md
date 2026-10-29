@@ -13,7 +13,6 @@
 API RESTful desarrollada para la gestión integral de plataformas hoteleras (**QuickStay**). Permite la administración centralizada de cadenas hoteleras, habitaciones, reservaciones, eventos, facturación automatizada y servicios adicionales, con control de acceso basado en roles (RBAC).
 
 > 👥 **Proyecto Colaborativo / En Equipo**  
-> Desarrollado y mejorado como trabajo de equipo por **Rafael Castro** y **Cristian Lima**.  
 > Repositorio base original: [CristiannLimaR/Hotel-manager-Backend](https://github.com/CristiannLimaR/Hotel-manager-Backend).
 
 ---
@@ -102,11 +101,6 @@ npm start
 ```
 
 ---
-
-## 👥 Equipo de Desarrollo
-
-- **Rafael Castro** ([@RafaelCastroRR](https://github.com/RafaelCastroRR))
-- **Cristian Lima** ([@CristiannLimaR](https://github.com/CristiannLimaR))
 
 ## 📄 Licencia
 Este proyecto es desarrollado con fines educativos y de demostración técnica.
