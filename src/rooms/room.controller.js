@@ -16,6 +16,26 @@ const getPublicIdFromUrl = (url) => {
   return null;
 };
 
+export const syncHotelPriceRange = async (hotelId) => {
+  try {
+    if (!hotelId) return;
+    const rooms = await Room.find({ hotel_id: hotelId, state: true });
+    if (rooms && rooms.length > 0) {
+      const prices = rooms.map(r => r.price_per_night).filter(p => typeof p === 'number' && p > 0);
+      if (prices.length > 0) {
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        await Hotel.findByIdAndUpdate(hotelId, {
+          rangeOfPrices: { min, max },
+          availableRooms: rooms.filter(r => r.available !== false).length
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error syncing hotel price range:", err);
+  }
+};
+
 export const saveRoom = async (req, res) => {
   try {
     const { type, capacity, price_per_night, hotel_id } = req.body;
@@ -36,6 +56,7 @@ export const saveRoom = async (req, res) => {
     hotel.availableRooms = (hotel.availableRooms || 0) + 1;
 
     await hotel.save();
+    await syncHotelPriceRange(hotel_id);
 
     res.status(201).json({
       msg: "Room saved successfully",
@@ -174,6 +195,11 @@ export const updateRoom = async (req, res) => {
       return res.status(404).json({
         msg: "Room not found",
       });
+    }
+
+    if (updatedRoom.hotel_id) {
+      const hId = updatedRoom.hotel_id._id || updatedRoom.hotel_id;
+      await syncHotelPriceRange(hId);
     }
 
     res.status(200).json({

@@ -1,13 +1,21 @@
 import Service from "./service.model.js";
 import Hotel from "../hotels/hotel.schema.js";
 
-
 export const createService = async (req, res) => {
   try {
-    const { name, description, price, category, available, hotel } = req.body;
+    let { name, description, price, category, available, hotel } = req.body;
 
-    if (!name || !category || price === undefined || !hotel) {
-      return res.status(400).json({ msg: "Name, category, price and hotel are required" });
+    // Si hotel no viene explícito, buscar el hotel del usuario autenticado
+    if (!hotel && req.user) {
+      const userHotel = await Hotel.findOne({
+        $or: [{ admin: req.user._id }, { admins: req.user._id }],
+        state: true,
+      });
+      if (userHotel) hotel = userHotel._id;
+    }
+
+    if (!name || price === undefined || !hotel) {
+      return res.status(400).json({ msg: "Name, price and hotel are required" });
     }
 
     // Eliminar el índice único si existe
@@ -24,18 +32,18 @@ export const createService = async (req, res) => {
     
     const service = new Service({
       name,
-      description,
-      price,
-      category,
-      available,
+      description: description || "Servicio adicional para huéspedes",
+      price: parseFloat(price),
+      category: category || "other",
+      available: available !== undefined ? available : true,
     });
 
     await service.save();
 
-    // Añadir el servicio al array de servicios del hotel
+    // Añadir el servicio al array de servicios del hotel sin duplicar
     await Hotel.findByIdAndUpdate(
       hotel,
-      { $push: { services: service._id } }
+      { $addToSet: { services: service._id } }
     );
 
     res.status(201).json({
@@ -49,7 +57,6 @@ export const createService = async (req, res) => {
     });
   }
 };
-
 
 export const getServices = async (req, res) => {
   try {
@@ -98,15 +105,21 @@ export const getServiceById = async (req, res) => {
   }
 };
 
-
 export const updateService = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, description, price, category, available } = req.body;
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (category !== undefined) updateData.category = category;
+    if (available !== undefined) updateData.available = available;
+
     const service = await Service.findByIdAndUpdate(
       id,
-      { name, description, price, category, available },
+      updateData,
       { new: true }
     );
 
@@ -128,8 +141,6 @@ export const updateService = async (req, res) => {
   }
 };
 
-
-
 export const disableService = async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,6 +156,12 @@ export const disableService = async (req, res) => {
         msg: "Service not found",
       });
     }
+
+    // Quitar también la referencia en los hoteles
+    await Hotel.updateMany(
+      { services: id },
+      { $pull: { services: id } }
+    );
 
     res.status(200).json({
       msg: "Service disabled successfully",
