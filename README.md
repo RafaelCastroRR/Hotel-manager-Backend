@@ -17,6 +17,40 @@ API RESTful desarrollada para la gestión integral de plataformas hoteleras (**Q
 
 ---
 
+## 👥 Cuentas de Prueba para Testing (Credenciales de Demostración)
+
+Para evaluar y probar todos los endpoints y módulos de la API según roles de usuario, se han preconfigurado las siguientes cuentas activas:
+
+> 🔑 **Contraseña para todas las cuentas de prueba:** `1234567`
+
+### 🛡️ 1. Administrador General (Platform Admin)
+| Nombre | Correo Electrónico | Contraseña | Rol | Acceso y Permisos |
+|---|---|---|---|---|
+| **Administrador General** | `admin@admin.com` | `1234567` | `ADMIN_ROLE` | Gestión total de hoteles, asignación de managers, reportes globales |
+
+---
+
+### 💼 2. Administradores de Hotel (Hotel Managers)
+Encargados de gestionar el catálogo de habitaciones, servicios adicionales, tarifas y eventos de sus respectivos hoteles:
+
+| Nombre | Correo Electrónico | Contraseña | Rol | Hotel Asignado |
+|---|---|---|---|---|
+| **Carlos Morales** | `carlos.morales@hotelguatemala.com` | `1234567` | `MANAGER_ROLE` | Grand Hotel Tikal Futura |
+| **Sofía Álvarez** | `sofia.alvarez@hotelguatemala.com` | `1234567` | `MANAGER_ROLE` | Hotel Boutique & Spa Antigua Colonial |
+| **Mateo Castillo** | `mateo.castillo@hotelguatemala.com` | `1234567` | `MANAGER_ROLE` | Porta Hotel & Eco-Lodge Del Lago Atitlán |
+
+---
+
+### 👤 3. Clientes / Huéspedes (User Role)
+Para pruebas de consulta de disponibilidad, creación de reservas, solicitud de servicios y facturación:
+
+| Nombre | Correo Electrónico | Contraseña | Rol | Funcionalidad |
+|---|---|---|---|---|
+| **Andrea Gómez** | `andrea.gomez@gmail.com` | `1234567` | `USER_ROLE` | Reservas activas, historial y facturas |
+| **Luis Fernando Pérez** | `luis.perez@gmail.com` | `1234567` | `USER_ROLE` | Reservas y eventos |
+
+---
+
 ## ✨ Características Principales
 
 - **Gestión de Hoteles:** Registro, actualización, listado y filtrado de sucursales hoteleras y asignación de administradores/managers.
